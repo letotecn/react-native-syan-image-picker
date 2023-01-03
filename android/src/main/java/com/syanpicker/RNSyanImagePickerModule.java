@@ -211,6 +211,7 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
                 .isWeChatStyle(isWeChatStyle)
                 .theme(showSelectedIndex ? R.style.picture_WeChat_style : 0)
                 .compressFocusAlpha(compressFocusAlpha)
+                .compressQuality(85)
                 .forResult(PictureConfig.CHOOSE_REQUEST); //结果回调onActivityResult code
     }
 
@@ -360,11 +361,11 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
                 Boolean isAndroidR = SdkVersionUtils.checkedAndroid_R();
                 String filePath = media.getPath();
                 if (isAndroidQ){
-                   filePath = media.getAndroidQToPath();
+                    filePath = media.getAndroidQToPath();
                 }
-               if (isAndroidR){
-                   filePath = media.getRealPath();
-               }
+                if (isAndroidR){
+                    filePath = media.getRealPath();
+                }
 
                 videoMap.putString("uri", "file://" + filePath);
                 videoMap.putString("coverUri", "file://" + this.getVideoCover(filePath));
