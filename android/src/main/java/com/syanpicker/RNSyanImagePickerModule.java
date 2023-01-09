@@ -31,6 +31,7 @@ import com.luck.picture.lib.config.SelectModeConfig;
 import com.luck.picture.lib.engine.CompressEngine;
 import com.luck.picture.lib.entity.LocalMedia;
 import com.luck.picture.lib.interfaces.OnCallbackListener;
+import com.luck.picture.lib.interfaces.OnResultCallbackListener;
 import com.luck.picture.lib.utils.PictureFileUtils;
 import com.luck.picture.lib.utils.SdkVersionUtils;
 
@@ -247,33 +248,29 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
      * 打开相机
      */
     private void openCamera() {
-        boolean isCrop = this.cameraOptions.getBoolean("isCrop");
-        int CropW = this.cameraOptions.getInt("CropW");
-        int CropH = this.cameraOptions.getInt("CropH");
-        boolean showCropCircle = this.cameraOptions.getBoolean("showCropCircle");
-        boolean showCropFrame = this.cameraOptions.getBoolean("showCropFrame");
-        boolean showCropGrid = this.cameraOptions.getBoolean("showCropGrid");
-        boolean compress = this.cameraOptions.getBoolean("compress");
-        boolean freeStyleCropEnabled = this.cameraOptions.getBoolean("freeStyleCropEnabled");
         boolean rotateEnabled = this.cameraOptions.getBoolean("rotateEnabled");
-        boolean scaleEnabled = this.cameraOptions.getBoolean("scaleEnabled");
-        int minimumCompressSize = this.cameraOptions.getInt("minimumCompressSize");
-        int quality = this.cameraOptions.getInt("quality");
-        boolean isWeChatStyle = this.cameraOptions.getBoolean("isWeChatStyle");
-        boolean showSelectedIndex = this.cameraOptions.getBoolean("showSelectedIndex");
-        boolean compressFocusAlpha = this.cameraOptions.getBoolean("compressFocusAlpha");
+
 
         Boolean isAndroidQ = SdkVersionUtils.isQ();
 
         Activity currentActivity = getCurrentActivity();
         PictureSelector.create(currentActivity)
                 .openCamera(SelectMimeType.ofImage())
-                .setImageEngine(GlideEngine.createGlideEngine())
-                .setCameraImageFormat(isAndroidQ ? PictureMimeType.PNG_Q : PictureMimeType.PNG)// 拍照保存图片格式后缀,默认jpeg
-                .isOpenClickSound(false)// 是否开启点击声音 true or false
+                .setCameraImageFormat(isAndroidQ ? PictureMimeType.PNG_Q : PictureMimeType.PNG)// 拍照保存图片格式后缀,默认jpegs
                 .isCameraRotateImage(rotateEnabled) // 裁剪是否可旋转图片 true or false
                 .setCompressEngine(createCompressEngine())
-                .forResult(PictureConfig.CHOOSE_REQUEST);//结果回调onActivityResult code
+                .forResult(new OnResultCallbackListener<LocalMedia>() {
+                    @Override
+                    public void onResult(ArrayList<LocalMedia> result) {
+                        // 结果回调
+                        onOpenCameraResult(result);
+                    }
+
+                    @Override
+                    public void onCancel() {
+
+                    }
+                });//结果回调onActivityResult code
     }
 
     /**
@@ -288,17 +285,20 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
         Activity currentActivity = getCurrentActivity();
         PictureSelector.create(currentActivity)
                 .openCamera(SelectMimeType.ofVideo())//全部.PictureMimeType.ofAll()、图片.ofImage()、视频.ofVideo()、音频.ofAudio()
-                .setImageEngine(GlideEngine.createGlideEngine())
                 .setSelectedData(selectList) // 当前已选中的图片 List
-                .isOpenClickSound(false)// 是否开启点击声音 true or false
-                .setMaxSelectNum(imageCount)// 最大图片选择数量 int
-                .setMinSelectNum(0)// 最小选择数量 int
-                .setImageSpanCount(4)// 每行显示个数 int
-                .setSelectionMode(SelectModeConfig.MULTIPLE)// 多选 or 单选 PictureConfig.MULTIPLE or PictureConfig.SINGLE
-                .isPreviewVideo(true)// 是否可预览视频 true or false
                 .setRecordVideoMaxSecond(MaxSecond)// 显示多少秒以内的视频or音频也可适用 int
                 .setRecordVideoMinSecond(MinSecond)// 显示多少秒以内的视频or音频也可适用 int
-                .forResult(PictureConfig.REQUEST_CAMERA);//结果回调onActivityResult code
+                .forResult(new OnResultCallbackListener<LocalMedia>() {
+                    @Override
+                    public void onResult(ArrayList<LocalMedia> result) {
+
+                    }
+
+                    @Override
+                    public void onCancel() {
+
+                    }
+                });//结果回调onActivityResult code
     }
 
     /**
@@ -404,6 +404,23 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
             boolean enableBase64 = cameraOptions.getBoolean("enableBase64");
 
             for (LocalMedia media : tmpSelectList) {
+                imageList.pushMap(getImageResult(media, enableBase64));
+            }
+            invokeSuccessWithResult(imageList);
+        }
+    }
+
+    private void onOpenCameraResult(ArrayList<LocalMedia> result) {
+        if (cameraOptions != null) {
+            boolean isRecordSelected = cameraOptions.getBoolean("isRecordSelected");
+            if (!result.isEmpty() && isRecordSelected) {
+                selectList = result;
+            }
+
+            WritableArray imageList = new WritableNativeArray();
+            boolean enableBase64 = cameraOptions.getBoolean("enableBase64");
+
+            for (LocalMedia media : result) {
                 imageList.pushMap(getImageResult(media, enableBase64));
             }
             invokeSuccessWithResult(imageList);
