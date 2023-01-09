@@ -33,9 +33,10 @@ public class GlideEngine implements ImageEngine {
     }
 
     @Override
-    public void loadImageBitmap(@NonNull Context context, @NonNull String url, int maxWidth, int maxHeight, OnCallbackListener<Bitmap> call) {
+    public void loadImage(Context context, ImageView imageView, String url, int maxWidth, int maxHeight) {
 
     }
+
 
     @Override
     public void loadAlbumCover(@NonNull Context context, @NonNull String url, @NonNull ImageView imageView) {
