@@ -1,4 +1,5 @@
-
+# LT
+只适用于LT的图片选择/拍照。Crop，Video，Compress等参数均不可用
 # react-native-syan-image-picker
 
 [![npm](https://img.shields.io/npm/v/react-native-syan-image-picker.svg)](https://www.npmjs.com/package/react-native-syan-image-picker)
