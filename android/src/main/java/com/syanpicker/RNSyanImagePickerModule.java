@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Base64;
 
@@ -28,9 +29,9 @@ import com.luck.picture.lib.config.PictureConfig;
 import com.luck.picture.lib.config.PictureMimeType;
 import com.luck.picture.lib.config.SelectMimeType;
 import com.luck.picture.lib.config.SelectModeConfig;
-import com.luck.picture.lib.engine.CompressEngine;
+import com.luck.picture.lib.engine.CompressFileEngine;
 import com.luck.picture.lib.entity.LocalMedia;
-import com.luck.picture.lib.interfaces.OnCallbackListener;
+import com.luck.picture.lib.interfaces.OnKeyValueResultCallbackListener;
 import com.luck.picture.lib.interfaces.OnResultCallbackListener;
 import com.luck.picture.lib.utils.PictureFileUtils;
 import com.luck.picture.lib.utils.SdkVersionUtils;
@@ -47,7 +48,7 @@ import java.util.List;
 import java.util.UUID;
 
 import top.zibin.luban.Luban;
-import top.zibin.luban.OnCompressListener;
+import top.zibin.luban.OnNewCompressListener;
 
 public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
 
@@ -185,7 +186,7 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
         }
 
         Boolean isAndroidQ = SdkVersionUtils.isQ();
-
+        
         Activity currentActivity = getCurrentActivity();
         PictureSelector.create(currentActivity)
                 .openGallery(SelectMimeType.ofImage())//全部.PictureMimeType.ofAll()、图片.ofImage()、视频.ofVideo()、音频.ofAudio()
@@ -208,40 +209,31 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
                 .forResult(PictureConfig.CHOOSE_REQUEST); //结果回调onActivityResult code
     }
 
-    private CompressEngine createCompressEngine() {
-        CompressEngine engine = new CompressEngine() {
+    private CompressFileEngine createCompressEngine() {
+        return new CompressFileEngine() {
+
             @Override
-            public void onStartCompress(Context context, ArrayList<LocalMedia> list, OnCallbackListener<ArrayList<LocalMedia>> listener) {
-                // 压缩回调
-                List<String> pathList = new ArrayList<>();
-                for (LocalMedia media : list) {
-                    pathList.add(media.getAvailablePath());
-                }
-                Luban.with(context).load(pathList).ignoreBy(100).setCompressListener(new OnCompressListener() {
-                    @Override
-                    public void onStart() {
-                        // 压缩开始前调用，可以在方法内启动 loading UI
-                    }
+            public void onStartCompress(Context context, ArrayList<Uri> source, OnKeyValueResultCallbackListener call) {
+                Luban.with(context).load(source).ignoreBy(100).setCompressListener(
+                        new OnNewCompressListener() {
+                            @Override
+                            public void onStart() {
 
-                    @Override
-                    public void onSuccess(File file) {
-                        // 压缩成功后调用，返回压缩后的图片文件
-                        ArrayList<LocalMedia> list = new ArrayList<>();
-                        LocalMedia localMedia = new LocalMedia();
-                        localMedia.setPath(file.getAbsolutePath());
-                        list.add(localMedia);
-                        listener.onCall(list);
-                    }
+                            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        // 当压缩过程出现问题时调用
-                    }
-                }).launch();
+                            @Override
+                            public void onSuccess(String source, File compressFile) {
+                                call.onCallback(source, compressFile.getAbsolutePath());
+                            }
+
+                            @Override
+                            public void onError(String source, Throwable e) {
+
+                            }
+                        }
+                ).launch();
             }
         };
-
-        return engine;
     }
 
     /**
@@ -258,7 +250,6 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
                 .openCamera(SelectMimeType.ofImage())
                 .setCameraImageFormat(isAndroidQ ? PictureMimeType.PNG_Q : PictureMimeType.PNG)// 拍照保存图片格式后缀,默认jpegs
                 .isCameraRotateImage(rotateEnabled) // 裁剪是否可旋转图片 true or false
-                .setCompressEngine(createCompressEngine())
                 .forResult(new OnResultCallbackListener<LocalMedia>() {
                     @Override
                     public void onResult(ArrayList<LocalMedia> result) {
